@@ -50,10 +50,54 @@ geef_object_exists(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   return enif_make_atom(env, "false");
 }
 
+static ERL_NIF_TERM
+geef_object_read(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+  char path[MAXBUFLEN];
+  char sha[MAXBUFLEN];
+  (void)memset(&path, '\0', sizeof(path));
+  (void)memset(&sha, '\0', sizeof(sha));
+
+  if (enif_get_string(env, argv[0], path, sizeof(path), ERL_NIF_LATIN1) < 1)
+      return enif_make_badarg(env);
+  if (enif_get_string(env, argv[1], sha, sizeof(sha), ERL_NIF_LATIN1) < 1)
+      return enif_make_badarg(env);
+
+  git_odb *odb;
+  git_odb_open(&odb, path);
+
+  git_oid oid;
+  git_oid_fromstr(&oid, sha);
+
+  int error;
+  git_odb_object *obj;
+
+  error = git_odb_read(&obj, odb, &oid);
+  if (error)
+  {
+    git_odb_free(odb);
+    return enif_make_tuple2(env,
+        enif_make_atom(env, "error"),
+        enif_make_string(env, "object does not exist", ERL_NIF_LATIN1));
+  }
+
+  size_t len;
+  len = git_odb_object_size(obj);
+
+  ErlNifBinary ibin;
+  enif_alloc_binary(len, &ibin);
+  memcpy(ibin.data, git_odb_object_data(obj), len);
+
+  git_odb_free(odb);
+
+  return enif_make_binary(env, &ibin);
+}
+
 static ErlNifFunc geef_funcs[] =
 {
   {"hex_to_raw", 1, geef_hex_to_raw},
-  {"object_exists", 2, geef_object_exists}
+  {"object_exists", 2, geef_object_exists},
+  {"object_read", 2, geef_object_read}
 };
 
 ERL_NIF_INIT(geef, geef_funcs, NULL, NULL, NULL, NULL)

@@ -14,6 +14,13 @@ main([Command|_Args]) ->
         [Object|_None] = _Rest,
         Exists = geef:object_exists(Path, Object),
         io:format("Exists: ~w~n", [Exists]);
+      "read" ->
+        [Path|_Rest] = _Args,
+        [Object|_None] = _Rest,
+        case geef:object_read(Path, Object) of
+          {error, Msg} -> io:format("error: ~s~n", [Msg]);
+          Contents -> io:format("Read: ~s~n", [Contents])
+        end;
       _Else ->
         usage()
     end;
