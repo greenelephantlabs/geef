@@ -9,7 +9,11 @@ start() ->
             SoName = filename:join(Dir, geef)
     end,
     io:format("Hey There: ~s~n", [SoName]),
-    erlang:load_nif(SoName, 0).
+    case erlang:load_nif(SoName, 0) of
+        ok -> ok;
+        {error, {Reason, Text}} ->
+            error_logger:error_msg("~p: ~s~n", [Reason, Text])
+    end. 
 
 hex_to_raw(_Val) ->
     nif_error(?LINE).    
